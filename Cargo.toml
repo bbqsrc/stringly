@@ -1,0 +1,44 @@
+[workspace]
+members = [".", "iconv"]
+
+[package]
+name = "stringly"
+description = "Generic string types parameterized by encoding (UTF-8, UTF-16, UTF-32, legacy codepages)"
+version = "0.0.0"
+edition = "2024"
+authors = ["Brendan Molloy <brendan@bbqsrc.net>"]
+license = "Apache-2.0 OR MIT"
+
+[features]
+default = ["unicode"]
+
+# Unicode encodings (all cover full Unicode)
+unicode = ["utf16", "utf32", "gb18030", "utf7", "cesu8", "utf-ebcdic"]
+utf16 = []
+utf32 = []
+gb18030 = []
+utf7 = []
+cesu8 = []
+utf-ebcdic = []
+
+# Legacy codepages (granular)
+codepages = ["codepages-iso8859", "codepages-windows", "codepages-dos", "codepages-apple", "codepages-misc", "codepages-japanese"]
+codepages-iso8859 = []
+codepages-windows = []
+codepages-dos = []
+codepages-apple = []
+codepages-misc = []
+
+# Japanese legacy encodings (EUC-JP, ISO-2022-JP)
+codepages-japanese = ["euc-jp", "iso-2022-jp"]
+euc-jp = []
+iso-2022-jp = []
+
+# Runtime encoding registry (for CLI tools)
+registry = ["dep:inventory"]
+
+[dependencies]
+inventory = { version = "0.3", optional = true }
+
+[dev-dependencies]
+paste = "1.0"
