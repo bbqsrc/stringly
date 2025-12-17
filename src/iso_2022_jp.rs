@@ -403,6 +403,29 @@ fn jis0208_encode_lookup(c: char) -> Option<u16> {
 
 impl crate::encoding::LimitedEncoding for Iso2022Jp {}
 
+#[cfg(feature = "registry")]
+inventory::submit! {
+    crate::registry::EncodingEntry {
+        name: "ISO-2022-JP",
+        aliases: &["iso-2022-jp", "iso2022jp", "ISO2022JP", "csISO2022JP"],
+        is_unicode: false,
+        decode: |bytes| {
+            Iso2022Jp::validate(bytes)?;
+            let mut chars = Vec::new();
+            let mut offset = 0;
+            while let Some((c, next)) = Iso2022Jp::decode_char_at(bytes, offset) {
+                chars.push(c);
+                offset = next;
+            }
+            Ok(chars)
+        },
+        try_encode_char: |c| {
+            let mut buf = [0u8; 2];
+            Iso2022Jp::try_encode_char(c, &mut buf).map(|len| buf[..len].to_vec())
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

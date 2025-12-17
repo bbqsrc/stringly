@@ -68,12 +68,21 @@ pub mod utf7;
 #[cfg(feature = "utf-ebcdic")]
 pub mod utf_ebcdic;
 
+/// Big5 encoding implementation.
+#[cfg(feature = "big5")]
+pub mod big5;
 /// EUC-JP encoding implementation.
 #[cfg(feature = "euc-jp")]
-pub mod eucjp;
+pub mod euc_jp;
+/// EUC-KR encoding implementation.
+#[cfg(feature = "euc-kr")]
+pub mod euc_kr;
 /// ISO-2022-JP encoding implementation.
 #[cfg(feature = "iso-2022-jp")]
-pub mod iso2022jp;
+pub mod iso_2022_jp;
+/// Shift_JIS encoding implementation.
+#[cfg(feature = "shift-jis")]
+pub mod shift_jis;
 
 /// Legacy codepage encoding implementations.
 #[cfg(any(
@@ -108,14 +117,20 @@ pub use string::String;
 pub use utf8::{StdStrSearcher, Utf8};
 
 // Feature-gated re-exports
+#[cfg(feature = "big5")]
+pub use big5::Big5;
 #[cfg(feature = "cesu8")]
 pub use cesu8::Cesu8;
 #[cfg(feature = "euc-jp")]
-pub use eucjp::EucJp;
+pub use euc_jp::EucJp;
+#[cfg(feature = "euc-kr")]
+pub use euc_kr::EucKr;
 #[cfg(feature = "gb18030")]
 pub use gb18030::Gb18030;
 #[cfg(feature = "iso-2022-jp")]
-pub use iso2022jp::Iso2022Jp;
+pub use iso_2022_jp::Iso2022Jp;
+#[cfg(feature = "shift-jis")]
+pub use shift_jis::ShiftJis;
 #[cfg(feature = "utf-ebcdic")]
 pub use utf_ebcdic::UtfEbcdic;
 #[cfg(feature = "utf7")]
@@ -176,6 +191,24 @@ pub type Iso2022JpStr = Str<Iso2022Jp>;
 /// An owned ISO-2022-JP string.
 #[cfg(feature = "iso-2022-jp")]
 pub type Iso2022JpString = String<Iso2022Jp>;
+/// A borrowed Shift_JIS string slice.
+#[cfg(feature = "shift-jis")]
+pub type ShiftJisStr = Str<ShiftJis>;
+/// An owned Shift_JIS string.
+#[cfg(feature = "shift-jis")]
+pub type ShiftJisString = String<ShiftJis>;
+/// A borrowed EUC-KR string slice.
+#[cfg(feature = "euc-kr")]
+pub type EucKrStr = Str<EucKr>;
+/// An owned EUC-KR string.
+#[cfg(feature = "euc-kr")]
+pub type EucKrString = String<EucKr>;
+/// A borrowed Big5 string slice.
+#[cfg(feature = "big5")]
+pub type Big5Str = Str<Big5>;
+/// An owned Big5 string.
+#[cfg(feature = "big5")]
+pub type Big5String = String<Big5>;
 /// A borrowed CESU-8 string slice.
 #[cfg(feature = "cesu8")]
 pub type Cesu8Str = Str<Cesu8>;

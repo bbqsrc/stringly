@@ -352,6 +352,29 @@ fn jis0212_lookup(pointer: u16) -> Option<char> {
 
 impl crate::encoding::LimitedEncoding for EucJp {}
 
+#[cfg(feature = "registry")]
+inventory::submit! {
+    crate::registry::EncodingEntry {
+        name: "EUC-JP",
+        aliases: &["euc-jp", "eucjp", "EUC_JP", "x-euc-jp"],
+        is_unicode: false,
+        decode: |bytes| {
+            EucJp::validate(bytes)?;
+            let mut chars = Vec::new();
+            let mut offset = 0;
+            while let Some((c, next)) = EucJp::decode_char_at(bytes, offset) {
+                chars.push(c);
+                offset = next;
+            }
+            Ok(chars)
+        },
+        try_encode_char: |c| {
+            let mut buf = [0u8; 3];
+            EucJp::try_encode_char(c, &mut buf).map(|len| buf[..len].to_vec())
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

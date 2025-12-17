@@ -20,21 +20,7 @@ A Rust library providing generic string types parameterized by encoding.
 
 ## Supported Encodings
 
-| Encoding | Feature Flag | Notes |
-|----------|-------------|-------|
-| UTF-8 | *(always available)* | Default encoding |
-| UTF-16 LE/BE | `utf16` | Little/big endian |
-| UTF-32 LE/BE | `utf32` | Little/big endian |
-| GB18030 | `gb18030` | Chinese national standard |
-| UTF-7 | `utf7` | 7-bit safe encoding (RFC 2152) |
-| UTF-7 IMAP | `utf7` | Modified UTF-7 for IMAP mailbox names (RFC 3501) |
-| CESU-8 | `cesu8` | Compatibility encoding for UTF-16 |
-| UTF-EBCDIC | `utf-ebcdic` | Unicode on EBCDIC systems |
-| EUC-JP | `euc-jp` | Japanese |
-| ISO-2022-JP | `iso-2022-jp` | Japanese (stateful) |
-| ISO-8859-* | `codepages-iso8859` | Western European, etc. |
-| Windows-* | `codepages-windows` | Windows codepages |
-| DOS codepages | `codepages-dos` | CP437, etc. |
+CESU-8, GB18030, UTF-16BE, UTF-16LE, UTF-32BE, UTF-32LE, UTF-7, UTF-7-IMAP, UTF-8, UTF-EBCDIC, ATARIST, Big5, CP037, CP1006, CP1026, CP424, CP437, CP500, CP737, CP775, CP850, CP852, CP855, CP856, CP857, CP860, CP861, CP862, CP863, CP864, CP865, CP866, CP869, CP875, EUC-JP, EUC-KR, ISO-2022-JP, ISO-8859-1, ISO-8859-10, ISO-8859-11, ISO-8859-13, ISO-8859-14, ISO-8859-15, ISO-8859-16, ISO-8859-2, ISO-8859-3, ISO-8859-4, ISO-8859-5, ISO-8859-6, ISO-8859-7, ISO-8859-8, ISO-8859-9, KOI8-R, KOI8-U, KZ1048, MacArabic, MacCeltic, MacCenteuro, MacChinsimp, MacChintrad, MacCroatian, MacCyrillic, MacDevanaga, MacDingbats, MacFarsi, MacGaelic, MacGreek, MacGujarati, MacGurmukhi, MacHebrew, MacIceland, MacInuit, MacJapanese, MacKeyboard, MacKorean, MacRoman, MacRomanian, MacSymbol, MacThai, MacTurkish, Shift_JIS, Windows-1250, Windows-1251, Windows-1252, Windows-1253, Windows-1254, Windows-1255, Windows-1256, Windows-1257, Windows-1258, Windows-874, Windows-932, Windows-936, Windows-949, Windows-950
 
 ## Usage
 
@@ -101,9 +87,12 @@ let latin1: Option<String<Iso8859_1>> = utf8.try_transcode();
 | `codepages-dos` | DOS codepages (CP437, etc.) |
 | `codepages-apple` | Apple codepages |
 | `codepages-misc` | Miscellaneous codepages |
-| `codepages-japanese` | Enables `euc-jp`, `iso-2022-jp` |
+| `codepages-cjk` | Enables `euc-jp`, `iso-2022-jp`, `shift-jis`, `euc-kr`, `big5` |
 | `euc-jp` | EUC-JP |
 | `iso-2022-jp` | ISO-2022-JP (stateful) |
+| `shift-jis` | Shift_JIS |
+| `euc-kr` | EUC-KR |
+| `big5` | Big5 |
 | `registry` | Runtime encoding registry for CLI tools |
 
 ## Encoding Traits

@@ -22,17 +22,20 @@ cesu8 = []
 utf-ebcdic = []
 
 # Legacy codepages (granular)
-codepages = ["codepages-iso8859", "codepages-windows", "codepages-dos", "codepages-apple", "codepages-misc", "codepages-japanese"]
+codepages = ["codepages-iso8859", "codepages-windows", "codepages-dos", "codepages-apple", "codepages-misc", "codepages-cjk"]
 codepages-iso8859 = []
 codepages-windows = []
 codepages-dos = []
 codepages-apple = []
 codepages-misc = []
 
-# Japanese legacy encodings (EUC-JP, ISO-2022-JP)
-codepages-japanese = ["euc-jp", "iso-2022-jp"]
+# CJK legacy encodings
+codepages-cjk = ["euc-jp", "iso-2022-jp", "shift-jis", "euc-kr", "big5"]
 euc-jp = []
 iso-2022-jp = []
+shift-jis = []
+euc-kr = []
+big5 = []
 
 # Runtime encoding registry (for CLI tools)
 registry = ["dep:inventory"]
