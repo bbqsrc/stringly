@@ -49,6 +49,13 @@ pub trait Encoding: Sized + 'static {
     /// The maximum number of bytes a single character can occupy in this encoding.
     const MAX_CHAR_LEN: usize;
 
+    /// The number of bytes used to represent the null character ('\0') in this encoding.
+    ///
+    /// For UTF-8 and single-byte encodings this is 1.
+    /// For UTF-16 this is 2 (the code unit 0x0000).
+    /// For UTF-32 this is 4 (the code unit 0x00000000).
+    const NULL_LEN: usize = 1;
+
     /// Validates that the given byte slice is valid for this encoding.
     ///
     /// Returns `Ok(())` if the bytes are valid, or an `EncodingError` indicating

@@ -16,6 +16,7 @@ impl Encoding for Utf16Le {
     const IS_FIXED_WIDTH: bool = false;
     const BYTES_PER_CHAR: Option<usize> = None;
     const MAX_CHAR_LEN: usize = 4;
+    const NULL_LEN: usize = 2;
 
     fn validate(bytes: &[u8]) -> Result<(), EncodingError> {
         // Must have even number of bytes

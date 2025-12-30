@@ -609,8 +609,6 @@ mod tests {
 
     #[test]
     fn test_from_str_trait() {
-        use core::str::FromStr;
-
         // Test FromStr for String<Utf8>
         let s: String<Utf8> = "hello world".parse().unwrap();
         assert_eq!(s.len(), 11);

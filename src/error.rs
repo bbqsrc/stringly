@@ -179,3 +179,139 @@ impl fmt::Display for TranscodeError {
 }
 
 impl std::error::Error for TranscodeError {}
+
+/// An error returned when converting bytes with a null terminator to a C string fails.
+///
+/// This error is returned by `CStr::from_bytes_with_nul` and `CString::from_bytes_with_nul`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FromBytesWithNulError {
+    /// An interior null byte was found before the expected terminating null.
+    InteriorNul {
+        /// The byte position of the interior null.
+        position: usize,
+    },
+    /// The byte slice did not end with a null terminator.
+    NotNulTerminated,
+    /// The byte slice contained an invalid encoding sequence.
+    InvalidEncoding {
+        /// The encoding error that was encountered.
+        error: EncodingError,
+    },
+}
+
+impl FromBytesWithNulError {
+    /// Creates an error for an interior null byte at the given position.
+    #[inline]
+    pub const fn interior_nul(position: usize) -> Self {
+        Self::InteriorNul { position }
+    }
+
+    /// Creates an error indicating the slice was not null terminated.
+    #[inline]
+    pub const fn not_nul_terminated() -> Self {
+        Self::NotNulTerminated
+    }
+
+    /// Creates an error for an invalid encoding sequence.
+    #[inline]
+    pub const fn invalid_encoding(error: EncodingError) -> Self {
+        Self::InvalidEncoding { error }
+    }
+}
+
+impl fmt::Display for FromBytesWithNulError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InteriorNul { position } => {
+                write!(f, "interior null byte found at position {}", position)
+            }
+            Self::NotNulTerminated => {
+                write!(f, "data provided is not null terminated")
+            }
+            Self::InvalidEncoding { error } => {
+                write!(f, "invalid encoding: {}", error)
+            }
+        }
+    }
+}
+
+impl std::error::Error for FromBytesWithNulError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::InvalidEncoding { error } => Some(error),
+            _ => None,
+        }
+    }
+}
+
+/// An error returned when creating a `CString` from bytes with a null terminator fails.
+///
+/// This error owns the bytes that were attempted to be converted.
+pub struct FromBytesWithNulVecError {
+    bytes: Vec<u8>,
+    kind: FromBytesWithNulError,
+}
+
+impl FromBytesWithNulVecError {
+    /// Creates a new error from owned bytes and an error kind.
+    #[inline]
+    pub(crate) fn new(bytes: Vec<u8>, kind: FromBytesWithNulError) -> Self {
+        Self { bytes, kind }
+    }
+
+    /// Returns a slice of the bytes that were attempted to be converted.
+    #[inline]
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+
+    /// Consumes this error, returning the bytes that were attempted to be converted.
+    #[inline]
+    pub fn into_bytes(self) -> Vec<u8> {
+        self.bytes
+    }
+
+    /// Returns the underlying error kind.
+    #[inline]
+    pub fn kind(&self) -> &FromBytesWithNulError {
+        &self.kind
+    }
+}
+
+impl fmt::Debug for FromBytesWithNulVecError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("FromBytesWithNulVecError")
+            .field("bytes", &self.bytes)
+            .field("kind", &self.kind)
+            .finish()
+    }
+}
+
+impl fmt::Display for FromBytesWithNulVecError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.kind, f)
+    }
+}
+
+impl std::error::Error for FromBytesWithNulVecError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.kind)
+    }
+}
+
+impl Clone for FromBytesWithNulVecError {
+    fn clone(&self) -> Self {
+        Self {
+            bytes: self.bytes.clone(),
+            kind: self.kind.clone(),
+        }
+    }
+}
+
+impl PartialEq for FromBytesWithNulVecError {
+    fn eq(&self, other: &Self) -> bool {
+        self.bytes == other.bytes && self.kind == other.kind
+    }
+}
+
+impl Eq for FromBytesWithNulVecError {}

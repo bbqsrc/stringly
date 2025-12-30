@@ -15,6 +15,7 @@ impl Encoding for Utf32Le {
     const IS_FIXED_WIDTH: bool = true;
     const BYTES_PER_CHAR: Option<usize> = Some(4);
     const MAX_CHAR_LEN: usize = 4;
+    const NULL_LEN: usize = 4;
 
     fn validate(bytes: &[u8]) -> Result<(), EncodingError> {
         // Must have length divisible by 4

@@ -23,6 +23,10 @@
 #![deny(missing_docs)]
 #![allow(clippy::new_without_default)]
 
+/// The `CStr<E>` borrowed null-terminated string type.
+pub mod cstr;
+/// The `CString<E>` owned null-terminated string type.
+pub mod cstring;
 /// Encoding trait and related types.
 pub mod encoding;
 /// Error types for encoding operations.
@@ -99,8 +103,12 @@ pub mod codepages;
 pub mod registry;
 
 // Re-export main types
+pub use cstr::CStr;
+pub use cstring::CString;
 pub use encoding::{Encoding, LimitedEncoding, UniversalEncoding};
-pub use error::{EncodingError, FromBytesError, TranscodeError};
+pub use error::{
+    EncodingError, FromBytesError, FromBytesWithNulError, FromBytesWithNulVecError, TranscodeError,
+};
 pub use iter::{
     Bytes, CharIndices, Chars, Drain, EscapeDebug, EscapeDefault, EscapeUnicode, Lines,
     MatchIndices, Matches, RMatchIndices, RMatches, RSplit, RSplitN, RSplitTerminator, Split,
@@ -233,6 +241,48 @@ pub type UtfEbcdicStr = Str<UtfEbcdic>;
 /// An owned UTF-EBCDIC string.
 #[cfg(feature = "utf-ebcdic")]
 pub type UtfEbcdicString = String<UtfEbcdic>;
+
+// =============================================================================
+// CStr/CString type aliases
+// =============================================================================
+
+/// A borrowed null-terminated UTF-8 string.
+pub type Utf8CStr = CStr<Utf8>;
+/// An owned null-terminated UTF-8 string.
+pub type Utf8CString = CString<Utf8>;
+
+/// A borrowed null-terminated UTF-16 little-endian string.
+#[cfg(feature = "utf16")]
+pub type Utf16LeCStr = CStr<Utf16Le>;
+/// An owned null-terminated UTF-16 little-endian string.
+#[cfg(feature = "utf16")]
+pub type Utf16LeCString = CString<Utf16Le>;
+/// A borrowed null-terminated UTF-16 big-endian string.
+#[cfg(feature = "utf16")]
+pub type Utf16BeCStr = CStr<Utf16Be>;
+/// An owned null-terminated UTF-16 big-endian string.
+#[cfg(feature = "utf16")]
+pub type Utf16BeCString = CString<Utf16Be>;
+
+/// A borrowed null-terminated UTF-32 little-endian string.
+#[cfg(feature = "utf32")]
+pub type Utf32LeCStr = CStr<Utf32Le>;
+/// An owned null-terminated UTF-32 little-endian string.
+#[cfg(feature = "utf32")]
+pub type Utf32LeCString = CString<Utf32Le>;
+/// A borrowed null-terminated UTF-32 big-endian string.
+#[cfg(feature = "utf32")]
+pub type Utf32BeCStr = CStr<Utf32Be>;
+/// An owned null-terminated UTF-32 big-endian string.
+#[cfg(feature = "utf32")]
+pub type Utf32BeCString = CString<Utf32Be>;
+
+/// A borrowed null-terminated GB18030 string.
+#[cfg(feature = "gb18030")]
+pub type Gb18030CStr = CStr<Gb18030>;
+/// An owned null-terminated GB18030 string.
+#[cfg(feature = "gb18030")]
+pub type Gb18030CString = CString<Gb18030>;
 
 // =============================================================================
 // Cross-encoding conversions
