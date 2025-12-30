@@ -396,3 +396,374 @@ impl<E: Encoding> core::ops::Index<core::ops::RangeFull> for CStr<E> {
         self.as_str()
     }
 }
+
+// =============================================================================
+// Compile-time CStr macros
+// =============================================================================
+
+/// Creates a `&'static CStr<Utf8>` from a string literal at compile time.
+///
+/// This macro appends a null terminator to the string literal and returns
+/// a static reference to a `CStr<Utf8>`.
+///
+/// # Example
+///
+/// ```
+/// use stringly::{utf8_cstr, Utf8CStr};
+///
+/// static HELLO: &Utf8CStr = utf8_cstr!("hello");
+/// assert_eq!(HELLO.as_bytes(), b"hello");
+/// assert_eq!(HELLO.as_bytes_with_nul(), b"hello\0");
+/// ```
+#[macro_export]
+macro_rules! utf8_cstr {
+    ($s:literal) => {{
+        const BYTES: &[u8] = concat!($s, "\0").as_bytes();
+        // SAFETY: concat! ensures null terminator, literal is valid UTF-8, no interior nulls
+        unsafe { $crate::CStr::<$crate::Utf8>::from_bytes_with_nul_unchecked(BYTES) }
+    }};
+}
+
+// =============================================================================
+// Const encoders for UTF-16/32 macros
+// =============================================================================
+
+/// Const encoder for UTF-16LE strings.
+#[doc(hidden)]
+pub struct Utf16LeEncoder;
+
+impl Utf16LeEncoder {
+    /// Calculate the output length in bytes for encoding a UTF-8 string to UTF-16LE with null.
+    pub const fn output_len(s: &str) -> usize {
+        let bytes = s.as_bytes();
+        let mut i = 0;
+        let mut len = 0;
+        while i < bytes.len() {
+            let b = bytes[i];
+            if b < 0x80 {
+                len += 2; // ASCII -> 1 code unit
+                i += 1;
+            } else if b < 0xE0 {
+                len += 2; // 2-byte UTF-8 -> 1 code unit
+                i += 2;
+            } else if b < 0xF0 {
+                len += 2; // 3-byte UTF-8 -> 1 code unit
+                i += 3;
+            } else {
+                len += 4; // 4-byte UTF-8 -> surrogate pair (2 code units)
+                i += 4;
+            }
+        }
+        len + 2 // Plus null terminator (2 bytes)
+    }
+
+    /// Encode a UTF-8 string to UTF-16LE bytes with null terminator.
+    pub const fn encode<const N: usize>(s: &str) -> [u8; N] {
+        let bytes = s.as_bytes();
+        let mut out = [0u8; N];
+        let mut i = 0;
+        let mut o = 0;
+
+        while i < bytes.len() {
+            let b = bytes[i];
+            let (cp, advance) = if b < 0x80 {
+                (b as u32, 1)
+            } else if b < 0xE0 {
+                let cp = ((b as u32 & 0x1F) << 6) | (bytes[i + 1] as u32 & 0x3F);
+                (cp, 2)
+            } else if b < 0xF0 {
+                let cp = ((b as u32 & 0x0F) << 12)
+                    | ((bytes[i + 1] as u32 & 0x3F) << 6)
+                    | (bytes[i + 2] as u32 & 0x3F);
+                (cp, 3)
+            } else {
+                let cp = ((b as u32 & 0x07) << 18)
+                    | ((bytes[i + 1] as u32 & 0x3F) << 12)
+                    | ((bytes[i + 2] as u32 & 0x3F) << 6)
+                    | (bytes[i + 3] as u32 & 0x3F);
+                (cp, 4)
+            };
+
+            if cp <= 0xFFFF {
+                // BMP character
+                out[o] = cp as u8;
+                out[o + 1] = (cp >> 8) as u8;
+                o += 2;
+            } else {
+                // Surrogate pair
+                let cp = cp - 0x10000;
+                let high = 0xD800 + (cp >> 10);
+                let low = 0xDC00 + (cp & 0x3FF);
+                out[o] = high as u8;
+                out[o + 1] = (high >> 8) as u8;
+                out[o + 2] = low as u8;
+                out[o + 3] = (low >> 8) as u8;
+                o += 4;
+            }
+            i += advance;
+        }
+        // Null terminator already zero-initialized
+        out
+    }
+}
+
+/// Const encoder for UTF-16BE strings.
+#[doc(hidden)]
+pub struct Utf16BeEncoder;
+
+impl Utf16BeEncoder {
+    /// Calculate the output length in bytes for encoding a UTF-8 string to UTF-16BE with null.
+    pub const fn output_len(s: &str) -> usize {
+        Utf16LeEncoder::output_len(s) // Same length calculation
+    }
+
+    /// Encode a UTF-8 string to UTF-16BE bytes with null terminator.
+    pub const fn encode<const N: usize>(s: &str) -> [u8; N] {
+        let bytes = s.as_bytes();
+        let mut out = [0u8; N];
+        let mut i = 0;
+        let mut o = 0;
+
+        while i < bytes.len() {
+            let b = bytes[i];
+            let (cp, advance) = if b < 0x80 {
+                (b as u32, 1)
+            } else if b < 0xE0 {
+                let cp = ((b as u32 & 0x1F) << 6) | (bytes[i + 1] as u32 & 0x3F);
+                (cp, 2)
+            } else if b < 0xF0 {
+                let cp = ((b as u32 & 0x0F) << 12)
+                    | ((bytes[i + 1] as u32 & 0x3F) << 6)
+                    | (bytes[i + 2] as u32 & 0x3F);
+                (cp, 3)
+            } else {
+                let cp = ((b as u32 & 0x07) << 18)
+                    | ((bytes[i + 1] as u32 & 0x3F) << 12)
+                    | ((bytes[i + 2] as u32 & 0x3F) << 6)
+                    | (bytes[i + 3] as u32 & 0x3F);
+                (cp, 4)
+            };
+
+            if cp <= 0xFFFF {
+                // BMP character (big-endian)
+                out[o] = (cp >> 8) as u8;
+                out[o + 1] = cp as u8;
+                o += 2;
+            } else {
+                // Surrogate pair (big-endian)
+                let cp = cp - 0x10000;
+                let high = 0xD800 + (cp >> 10);
+                let low = 0xDC00 + (cp & 0x3FF);
+                out[o] = (high >> 8) as u8;
+                out[o + 1] = high as u8;
+                out[o + 2] = (low >> 8) as u8;
+                out[o + 3] = low as u8;
+                o += 4;
+            }
+            i += advance;
+        }
+        out
+    }
+}
+
+/// Const encoder for UTF-32LE strings.
+#[doc(hidden)]
+pub struct Utf32LeEncoder;
+
+impl Utf32LeEncoder {
+    /// Calculate the output length in bytes for encoding a UTF-8 string to UTF-32LE with null.
+    pub const fn output_len(s: &str) -> usize {
+        let bytes = s.as_bytes();
+        let mut i = 0;
+        let mut len = 0;
+        while i < bytes.len() {
+            let b = bytes[i];
+            len += 4; // Every character is 4 bytes
+            if b < 0x80 {
+                i += 1;
+            } else if b < 0xE0 {
+                i += 2;
+            } else if b < 0xF0 {
+                i += 3;
+            } else {
+                i += 4;
+            }
+        }
+        len + 4 // Plus null terminator (4 bytes)
+    }
+
+    /// Encode a UTF-8 string to UTF-32LE bytes with null terminator.
+    pub const fn encode<const N: usize>(s: &str) -> [u8; N] {
+        let bytes = s.as_bytes();
+        let mut out = [0u8; N];
+        let mut i = 0;
+        let mut o = 0;
+
+        while i < bytes.len() {
+            let b = bytes[i];
+            let (cp, advance) = if b < 0x80 {
+                (b as u32, 1)
+            } else if b < 0xE0 {
+                let cp = ((b as u32 & 0x1F) << 6) | (bytes[i + 1] as u32 & 0x3F);
+                (cp, 2)
+            } else if b < 0xF0 {
+                let cp = ((b as u32 & 0x0F) << 12)
+                    | ((bytes[i + 1] as u32 & 0x3F) << 6)
+                    | (bytes[i + 2] as u32 & 0x3F);
+                (cp, 3)
+            } else {
+                let cp = ((b as u32 & 0x07) << 18)
+                    | ((bytes[i + 1] as u32 & 0x3F) << 12)
+                    | ((bytes[i + 2] as u32 & 0x3F) << 6)
+                    | (bytes[i + 3] as u32 & 0x3F);
+                (cp, 4)
+            };
+
+            // Little-endian: least significant byte first
+            out[o] = cp as u8;
+            out[o + 1] = (cp >> 8) as u8;
+            out[o + 2] = (cp >> 16) as u8;
+            out[o + 3] = (cp >> 24) as u8;
+            o += 4;
+            i += advance;
+        }
+        out
+    }
+}
+
+/// Const encoder for UTF-32BE strings.
+#[doc(hidden)]
+pub struct Utf32BeEncoder;
+
+impl Utf32BeEncoder {
+    /// Calculate the output length in bytes for encoding a UTF-8 string to UTF-32BE with null.
+    pub const fn output_len(s: &str) -> usize {
+        Utf32LeEncoder::output_len(s) // Same length calculation
+    }
+
+    /// Encode a UTF-8 string to UTF-32BE bytes with null terminator.
+    pub const fn encode<const N: usize>(s: &str) -> [u8; N] {
+        let bytes = s.as_bytes();
+        let mut out = [0u8; N];
+        let mut i = 0;
+        let mut o = 0;
+
+        while i < bytes.len() {
+            let b = bytes[i];
+            let (cp, advance) = if b < 0x80 {
+                (b as u32, 1)
+            } else if b < 0xE0 {
+                let cp = ((b as u32 & 0x1F) << 6) | (bytes[i + 1] as u32 & 0x3F);
+                (cp, 2)
+            } else if b < 0xF0 {
+                let cp = ((b as u32 & 0x0F) << 12)
+                    | ((bytes[i + 1] as u32 & 0x3F) << 6)
+                    | (bytes[i + 2] as u32 & 0x3F);
+                (cp, 3)
+            } else {
+                let cp = ((b as u32 & 0x07) << 18)
+                    | ((bytes[i + 1] as u32 & 0x3F) << 12)
+                    | ((bytes[i + 2] as u32 & 0x3F) << 6)
+                    | (bytes[i + 3] as u32 & 0x3F);
+                (cp, 4)
+            };
+
+            // Big-endian: most significant byte first
+            out[o] = (cp >> 24) as u8;
+            out[o + 1] = (cp >> 16) as u8;
+            out[o + 2] = (cp >> 8) as u8;
+            out[o + 3] = cp as u8;
+            o += 4;
+            i += advance;
+        }
+        out
+    }
+}
+
+/// Creates a `&'static CStr<Utf16Le>` from a string literal at compile time.
+///
+/// # Example
+///
+/// ```
+/// use stringly::{utf16le_cstr, Utf16LeCStr};
+///
+/// static HELLO: &Utf16LeCStr = utf16le_cstr!("hello");
+/// assert_eq!(HELLO.len(), 10); // 5 chars * 2 bytes each
+/// ```
+#[cfg(feature = "utf16")]
+#[macro_export]
+macro_rules! utf16le_cstr {
+    ($s:literal) => {{
+        const INPUT: &str = $s;
+        const LEN: usize = $crate::cstr::Utf16LeEncoder::output_len(INPUT);
+        const BYTES: [u8; LEN] = $crate::cstr::Utf16LeEncoder::encode(INPUT);
+        // SAFETY: Encoder produces valid UTF-16LE with null terminator
+        unsafe { $crate::CStr::<$crate::Utf16Le>::from_bytes_with_nul_unchecked(&BYTES) }
+    }};
+}
+
+/// Creates a `&'static CStr<Utf16Be>` from a string literal at compile time.
+///
+/// # Example
+///
+/// ```
+/// use stringly::{utf16be_cstr, Utf16BeCStr};
+///
+/// static HELLO: &Utf16BeCStr = utf16be_cstr!("hello");
+/// assert_eq!(HELLO.len(), 10); // 5 chars * 2 bytes each
+/// ```
+#[cfg(feature = "utf16")]
+#[macro_export]
+macro_rules! utf16be_cstr {
+    ($s:literal) => {{
+        const INPUT: &str = $s;
+        const LEN: usize = $crate::cstr::Utf16BeEncoder::output_len(INPUT);
+        const BYTES: [u8; LEN] = $crate::cstr::Utf16BeEncoder::encode(INPUT);
+        // SAFETY: Encoder produces valid UTF-16BE with null terminator
+        unsafe { $crate::CStr::<$crate::Utf16Be>::from_bytes_with_nul_unchecked(&BYTES) }
+    }};
+}
+
+/// Creates a `&'static CStr<Utf32Le>` from a string literal at compile time.
+///
+/// # Example
+///
+/// ```
+/// use stringly::{utf32le_cstr, Utf32LeCStr};
+///
+/// static HELLO: &Utf32LeCStr = utf32le_cstr!("hello");
+/// assert_eq!(HELLO.len(), 20); // 5 chars * 4 bytes each
+/// ```
+#[cfg(feature = "utf32")]
+#[macro_export]
+macro_rules! utf32le_cstr {
+    ($s:literal) => {{
+        const INPUT: &str = $s;
+        const LEN: usize = $crate::cstr::Utf32LeEncoder::output_len(INPUT);
+        const BYTES: [u8; LEN] = $crate::cstr::Utf32LeEncoder::encode(INPUT);
+        // SAFETY: Encoder produces valid UTF-32LE with null terminator
+        unsafe { $crate::CStr::<$crate::Utf32Le>::from_bytes_with_nul_unchecked(&BYTES) }
+    }};
+}
+
+/// Creates a `&'static CStr<Utf32Be>` from a string literal at compile time.
+///
+/// # Example
+///
+/// ```
+/// use stringly::{utf32be_cstr, Utf32BeCStr};
+///
+/// static HELLO: &Utf32BeCStr = utf32be_cstr!("hello");
+/// assert_eq!(HELLO.len(), 20); // 5 chars * 4 bytes each
+/// ```
+#[cfg(feature = "utf32")]
+#[macro_export]
+macro_rules! utf32be_cstr {
+    ($s:literal) => {{
+        const INPUT: &str = $s;
+        const LEN: usize = $crate::cstr::Utf32BeEncoder::output_len(INPUT);
+        const BYTES: [u8; LEN] = $crate::cstr::Utf32BeEncoder::encode(INPUT);
+        // SAFETY: Encoder produces valid UTF-32BE with null terminator
+        unsafe { $crate::CStr::<$crate::Utf32Be>::from_bytes_with_nul_unchecked(&BYTES) }
+    }};
+}
