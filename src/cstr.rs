@@ -12,7 +12,7 @@ use core::ptr;
 
 use crate::Str;
 use crate::encoding::Encoding;
-use crate::error::FromBytesWithNulError;
+use crate::error::{FromBytesUntilNulError, FromBytesWithNulError};
 use crate::iter::Chars;
 
 /// A borrowed reference to a null-terminated string in encoding `E`.
@@ -109,6 +109,62 @@ impl<E: Encoding> CStr<E> {
 
         // SAFETY: We've validated the bytes
         Ok(unsafe { Self::from_bytes_with_nul_unchecked(bytes) })
+    }
+
+    /// Creates a `CStr` from a byte slice, scanning for the first null terminator.
+    ///
+    /// This method scans the slice for the first null terminator and returns
+    /// a `CStr` containing the bytes up to and including that terminator.
+    /// Unlike [`from_bytes_with_nul`], the slice may contain additional bytes
+    /// after the null terminator.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - No null terminator is found in the slice
+    /// - The content before the null is not valid for the encoding
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use stringly::{CStr, Utf8};
+    ///
+    /// // Find null in the middle of a slice
+    /// let bytes = b"hello\0world";
+    /// let cstr = CStr::<Utf8>::from_bytes_until_nul(bytes).unwrap();
+    /// assert_eq!(cstr.as_bytes(), b"hello");
+    ///
+    /// // Works with exact null-terminated slice too
+    /// let cstr = CStr::<Utf8>::from_bytes_until_nul(b"hello\0").unwrap();
+    /// assert_eq!(cstr.as_bytes(), b"hello");
+    ///
+    /// // Error if no null found
+    /// assert!(CStr::<Utf8>::from_bytes_until_nul(b"hello").is_err());
+    /// ```
+    pub fn from_bytes_until_nul(bytes: &[u8]) -> Result<&Self, FromBytesUntilNulError> {
+        let null_len = E::NULL_LEN;
+
+        // Scan for the null terminator
+        let mut i = 0;
+        while i + null_len <= bytes.len() {
+            if is_null_bytes::<E>(&bytes[i..i + null_len]) {
+                // Found null at position i
+                let slice = &bytes[..i + null_len];
+
+                // Validate encoding of content (excluding null terminator)
+                let content = &bytes[..i];
+                if let Err(e) = E::validate(content) {
+                    return Err(FromBytesUntilNulError::invalid_encoding(e));
+                }
+
+                // SAFETY: We've validated the encoding and found the null terminator
+                return Ok(unsafe { Self::from_bytes_with_nul_unchecked(slice) });
+            }
+            // Move forward by one code unit
+            i += null_len;
+        }
+
+        Err(FromBytesUntilNulError::not_nul_terminated())
     }
 
     /// Creates a `CStr` from a byte slice without checking validity.
@@ -311,6 +367,39 @@ impl<E: Encoding> CStr<E> {
                 4 => Self::from_bytes_with_nul_unchecked(&EMPTY_UTF32),
                 _ => unreachable!(),
             }
+        }
+    }
+
+    /// Converts this C string to a `std::ffi::CStr`.
+    ///
+    /// For encodings with a 1-byte null terminator (like UTF-8), this returns
+    /// a borrowed reference. For encodings with multi-byte null terminators
+    /// (like UTF-16 or UTF-32), the content is transcoded to UTF-8 and an
+    /// owned `CString` is returned.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use stringly::{CStr, Utf8};
+    /// use std::borrow::Cow;
+    ///
+    /// let cstr = CStr::<Utf8>::from_bytes_with_nul(b"hello\0").unwrap();
+    /// let std_cstr: Cow<'_, std::ffi::CStr> = cstr.to_std();
+    /// assert!(matches!(std_cstr, Cow::Borrowed(_)));
+    /// ```
+    pub fn to_std(&self) -> std::borrow::Cow<'_, std::ffi::CStr> {
+        if E::NULL_LEN == 1 {
+            // 1-byte null terminator - compatible with std::ffi::CStr
+            // SAFETY: We have a valid null-terminated string with 1-byte null
+            let cstr =
+                unsafe { std::ffi::CStr::from_bytes_with_nul_unchecked(self.as_bytes_with_nul()) };
+            std::borrow::Cow::Borrowed(cstr)
+        } else {
+            // Multi-byte null terminator - need to transcode to UTF-8
+            let utf8: String = self.chars().collect();
+            let cstring =
+                std::ffi::CString::new(utf8).expect("transcoded string contains no interior nulls");
+            std::borrow::Cow::Owned(cstring)
         }
     }
 }
@@ -766,4 +855,29 @@ macro_rules! utf32be_cstr {
         // SAFETY: Encoder produces valid UTF-32BE with null terminator
         unsafe { $crate::CStr::<$crate::Utf32Be>::from_bytes_with_nul_unchecked(&BYTES) }
     }};
+}
+
+// =============================================================================
+// Box<CStr<E>> methods
+// =============================================================================
+
+impl<E: Encoding> CStr<E> {
+    /// Converts a boxed `CStr` into an owned `CString`.
+    ///
+    /// This is a zero-copy operation that takes ownership of the boxed slice.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use stringly::{CStr, CString, Utf8};
+    ///
+    /// let cstring = CString::<Utf8>::from_bytes_with_nul(b"hello\0".to_vec()).unwrap();
+    /// let boxed: Box<CStr<Utf8>> = cstring.into_boxed_c_str();
+    /// let cstring: CString<Utf8> = CStr::into_c_string(boxed);
+    /// assert_eq!(cstring.as_bytes(), b"hello");
+    /// ```
+    #[inline]
+    pub fn into_c_string(boxed: Box<Self>) -> crate::CString<E> {
+        crate::CString::from(boxed)
+    }
 }

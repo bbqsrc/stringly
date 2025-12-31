@@ -315,3 +315,53 @@ impl PartialEq for FromBytesWithNulVecError {
 }
 
 impl Eq for FromBytesWithNulVecError {}
+
+/// An error returned when scanning for a null terminator in a byte slice fails.
+///
+/// This error is returned by `CStr::from_bytes_until_nul`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FromBytesUntilNulError {
+    /// No null terminator was found in the byte slice.
+    NotNulTerminated,
+    /// The byte slice contained an invalid encoding sequence.
+    InvalidEncoding {
+        /// The encoding error that was encountered.
+        error: EncodingError,
+    },
+}
+
+impl FromBytesUntilNulError {
+    /// Creates an error indicating no null terminator was found.
+    #[inline]
+    pub const fn not_nul_terminated() -> Self {
+        Self::NotNulTerminated
+    }
+
+    /// Creates an error for an invalid encoding sequence.
+    #[inline]
+    pub const fn invalid_encoding(error: EncodingError) -> Self {
+        Self::InvalidEncoding { error }
+    }
+}
+
+impl fmt::Display for FromBytesUntilNulError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NotNulTerminated => {
+                write!(f, "no null terminator found in byte slice")
+            }
+            Self::InvalidEncoding { error } => {
+                write!(f, "invalid encoding: {}", error)
+            }
+        }
+    }
+}
+
+impl std::error::Error for FromBytesUntilNulError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::InvalidEncoding { error } => Some(error),
+            _ => None,
+        }
+    }
+}

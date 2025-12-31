@@ -4,16 +4,13 @@
 //! encoding. It is analogous to [`std::ffi::CString`] but supports arbitrary
 //! character encodings.
 
-use alloc::borrow::Cow;
-use alloc::boxed::Box;
-use alloc::vec::Vec;
-use core::borrow::Borrow;
-use core::cmp::Ordering;
-use core::fmt;
-use core::hash::{Hash, Hasher};
-use core::marker::PhantomData;
-use core::mem::ManuallyDrop;
-use core::ops::Deref;
+use std::borrow::{Borrow, Cow};
+use std::cmp::Ordering;
+use std::fmt;
+use std::hash::{Hash, Hasher};
+use std::marker::PhantomData;
+use std::mem::ManuallyDrop;
+use std::ops::Deref;
 
 use crate::Str;
 use crate::String;
@@ -21,8 +18,6 @@ use crate::cstr::CStr;
 use crate::encoding::Encoding;
 use crate::error::{FromBytesWithNulError, FromBytesWithNulVecError};
 use crate::iter::Chars;
-
-extern crate alloc;
 
 /// An owned null-terminated string in encoding `E`.
 ///
@@ -184,6 +179,63 @@ impl<E: Encoding> CString<E> {
         }
     }
 
+    /// Creates a `CString` from a byte vector containing a null terminator.
+    ///
+    /// This is an alias for [`from_bytes_with_nul`] for compatibility with
+    /// [`std::ffi::CString::from_vec_with_nul`].
+    ///
+    /// [`from_bytes_with_nul`]: Self::from_bytes_with_nul
+    #[inline]
+    pub fn from_vec_with_nul(bytes: Vec<u8>) -> Result<Self, FromBytesWithNulVecError> {
+        Self::from_bytes_with_nul(bytes)
+    }
+
+    /// Creates a `CString` from a byte vector without checking validity.
+    ///
+    /// This is an alias for [`from_bytes_with_nul_unchecked`] for compatibility
+    /// with [`std::ffi::CString::from_vec_with_nul_unchecked`].
+    ///
+    /// # Safety
+    ///
+    /// See [`from_bytes_with_nul_unchecked`](Self::from_bytes_with_nul_unchecked).
+    #[inline]
+    pub unsafe fn from_vec_with_nul_unchecked(bytes: Vec<u8>) -> Self {
+        unsafe { Self::from_bytes_with_nul_unchecked(bytes) }
+    }
+
+    /// Creates a `CString` from a byte vector without interior null checks.
+    ///
+    /// This method appends the null terminator and assumes no interior nulls.
+    /// Unlike [`from_bytes_with_nul_unchecked`], the input should NOT already
+    /// contain a null terminator.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure:
+    /// - The vector does not contain interior null characters
+    /// - The vector is valid for the encoding
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use stringly::{CString, Utf8};
+    ///
+    /// let cstring = unsafe { CString::<Utf8>::from_vec_unchecked(b"hello".to_vec()) };
+    /// assert_eq!(cstring.as_bytes(), b"hello");
+    /// assert_eq!(cstring.as_bytes_with_nul(), b"hello\0");
+    /// ```
+    #[inline]
+    pub unsafe fn from_vec_unchecked(mut bytes: Vec<u8>) -> Self {
+        bytes.reserve(E::NULL_LEN);
+        for _ in 0..E::NULL_LEN {
+            bytes.push(0);
+        }
+        Self {
+            bytes,
+            _marker: PhantomData,
+        }
+    }
+
     /// Consumes this `CString` and returns the underlying byte vector,
     /// excluding the null terminator.
     ///
@@ -262,6 +314,33 @@ impl<E: Encoding> CString<E> {
         self.bytes.truncate(new_len);
         // SAFETY: We've already validated the encoding
         unsafe { String::from_bytes_unchecked(self.bytes) }
+    }
+
+    /// Converts this `CString` to a `std::ffi::CString`.
+    ///
+    /// For encodings with a 1-byte null terminator (like UTF-8), this is a
+    /// zero-copy conversion. For encodings with multi-byte null terminators
+    /// (like UTF-16 or UTF-32), the content is transcoded to UTF-8.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use stringly::{CString, Utf8};
+    ///
+    /// let cstring = CString::<Utf8>::from_bytes_with_nul(b"hello\0".to_vec()).unwrap();
+    /// let std_cstring: std::ffi::CString = cstring.to_std();
+    /// assert_eq!(std_cstring.as_bytes(), b"hello");
+    /// ```
+    pub fn to_std(self) -> std::ffi::CString {
+        if E::NULL_LEN == 1 {
+            // 1-byte null terminator - zero-copy conversion
+            // SAFETY: We have a valid null-terminated string with 1-byte null
+            unsafe { std::ffi::CString::from_vec_with_nul_unchecked(self.bytes) }
+        } else {
+            // Multi-byte null terminator - transcode to UTF-8
+            let utf8: std::string::String = self.chars().collect();
+            std::ffi::CString::new(utf8).expect("transcoded string contains no interior nulls")
+        }
     }
 
     /// Consumes this `CString` and returns a raw pointer.
@@ -489,7 +568,7 @@ impl<E: Encoding> From<CString<E>> for Cow<'_, CStr<E>> {
 }
 
 // ToOwned implementation for CStr
-impl<E: Encoding> alloc::borrow::ToOwned for CStr<E> {
+impl<E: Encoding> std::borrow::ToOwned for CStr<E> {
     type Owned = CString<E>;
 
     #[inline]

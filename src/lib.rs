@@ -107,7 +107,8 @@ pub use cstr::CStr;
 pub use cstring::CString;
 pub use encoding::{Encoding, LimitedEncoding, UniversalEncoding};
 pub use error::{
-    EncodingError, FromBytesError, FromBytesWithNulError, FromBytesWithNulVecError, TranscodeError,
+    EncodingError, FromBytesError, FromBytesUntilNulError, FromBytesWithNulError,
+    FromBytesWithNulVecError, TranscodeError,
 };
 pub use iter::{
     Bytes, CharIndices, Chars, Drain, EscapeDebug, EscapeDefault, EscapeUnicode, Lines,

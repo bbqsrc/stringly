@@ -156,6 +156,29 @@ impl Str<Utf8> {
     }
 }
 
+// === CStr<Utf8> convenience methods ===
+
+impl crate::CStr<Utf8> {
+    /// Returns this C string as a `&str`.
+    ///
+    /// This is a zero-cost conversion since `CStr<Utf8>` is always valid UTF-8.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use stringly::{CStr, Utf8};
+    ///
+    /// let cstr = CStr::<Utf8>::from_bytes_with_nul(b"hello\0").unwrap();
+    /// let s: &str = cstr.as_std();
+    /// assert_eq!(s, "hello");
+    /// ```
+    #[inline]
+    pub fn as_std(&self) -> &str {
+        // SAFETY: CStr<Utf8> is always valid UTF-8
+        unsafe { std::str::from_utf8_unchecked(self.as_bytes()) }
+    }
+}
+
 // === AsRef<str> implementations ===
 
 impl AsRef<str> for Str<Utf8> {
