@@ -1,3 +1,5 @@
+use alloc::boxed::Box;
+
 use crate::Str;
 use crate::String;
 use crate::encoding::Encoding;
@@ -114,11 +116,11 @@ impl From<&str> for String<Utf8> {
     }
 }
 
-impl From<std::string::String> for String<Utf8> {
-    /// Creates a `String<Utf8>` from a `std::string::String`.
+impl From<alloc::string::String> for String<Utf8> {
+    /// Creates a `String<Utf8>` from a `alloc::string::String`.
     #[inline]
-    fn from(s: std::string::String) -> Self {
-        // SAFETY: std::string::String is always valid UTF-8
+    fn from(s: alloc::string::String) -> Self {
+        // SAFETY: alloc::string::String is always valid UTF-8
         unsafe { String::from_bytes_unchecked(s.into_bytes()) }
     }
 }
@@ -130,16 +132,16 @@ impl<'a> From<&'a Str<Utf8>> for &'a str {
     #[inline]
     fn from(s: &'a Str<Utf8>) -> &'a str {
         // SAFETY: Str<Utf8> is always valid UTF-8
-        unsafe { std::str::from_utf8_unchecked(s.as_bytes()) }
+        unsafe { core::str::from_utf8_unchecked(s.as_bytes()) }
     }
 }
 
-impl From<String<Utf8>> for std::string::String {
-    /// Converts a `String<Utf8>` to a `std::string::String`.
+impl From<String<Utf8>> for alloc::string::String {
+    /// Converts a `String<Utf8>` to a `alloc::string::String`.
     #[inline]
-    fn from(s: String<Utf8>) -> std::string::String {
+    fn from(s: String<Utf8>) -> alloc::string::String {
         // SAFETY: String<Utf8> is always valid UTF-8
-        unsafe { std::string::String::from_utf8_unchecked(s.into_bytes()) }
+        unsafe { alloc::string::String::from_utf8_unchecked(s.into_bytes()) }
     }
 }
 
@@ -152,7 +154,7 @@ impl Str<Utf8> {
     #[inline]
     pub fn as_std(&self) -> &str {
         // SAFETY: Str<Utf8> is always valid UTF-8
-        unsafe { std::str::from_utf8_unchecked(self.as_bytes()) }
+        unsafe { core::str::from_utf8_unchecked(self.as_bytes()) }
     }
 }
 
@@ -175,33 +177,33 @@ impl crate::CStr<Utf8> {
     #[inline]
     pub fn as_std(&self) -> &str {
         // SAFETY: CStr<Utf8> is always valid UTF-8
-        unsafe { std::str::from_utf8_unchecked(self.as_bytes()) }
+        unsafe { core::str::from_utf8_unchecked(self.as_bytes()) }
     }
 }
 
-// === std::ffi::CStr/CString conversions ===
+// === core::ffi::CStr/CString conversions ===
 
-impl<'a> TryFrom<&'a std::ffi::CStr> for &'a crate::CStr<Utf8> {
-    type Error = std::str::Utf8Error;
+impl<'a> TryFrom<&'a core::ffi::CStr> for &'a crate::CStr<Utf8> {
+    type Error = core::str::Utf8Error;
 
-    /// Converts a `&std::ffi::CStr` to a `&CStr<Utf8>`.
+    /// Converts a `&core::ffi::CStr` to a `&CStr<Utf8>`.
     ///
     /// This validates that the C string contains valid UTF-8.
-    fn try_from(s: &'a std::ffi::CStr) -> Result<Self, Self::Error> {
+    fn try_from(s: &'a core::ffi::CStr) -> Result<Self, Self::Error> {
         // Validate UTF-8
-        std::str::from_utf8(s.to_bytes())?;
+        core::str::from_utf8(s.to_bytes())?;
         // SAFETY: We just validated UTF-8, and it has null terminator
         Ok(unsafe { crate::CStr::<Utf8>::from_bytes_with_nul_unchecked(s.to_bytes_with_nul()) })
     }
 }
 
-impl TryFrom<std::ffi::CString> for crate::CString<Utf8> {
-    type Error = std::ffi::IntoStringError;
+impl TryFrom<alloc::ffi::CString> for crate::CString<Utf8> {
+    type Error = alloc::ffi::IntoStringError;
 
-    /// Converts a `std::ffi::CString` to a `CString<Utf8>`.
+    /// Converts a `core::ffi::CString` to a `CString<Utf8>`.
     ///
     /// This validates that the C string contains valid UTF-8.
-    fn try_from(s: std::ffi::CString) -> Result<Self, Self::Error> {
+    fn try_from(s: alloc::ffi::CString) -> Result<Self, Self::Error> {
         // Validate UTF-8 by converting to String
         let string = s.into_string()?;
         // SAFETY: String is valid UTF-8, from_str handles null terminator
@@ -240,26 +242,26 @@ impl From<String<Utf8>> for Box<str> {
     /// Converts a `String<Utf8>` to a `Box<str>`.
     #[inline]
     fn from(s: String<Utf8>) -> Box<str> {
-        std::string::String::from(s).into_boxed_str()
+        alloc::string::String::from(s).into_boxed_str()
     }
 }
 
 // === Cow<str> conversions ===
 
-impl<'a> From<std::borrow::Cow<'a, str>> for String<Utf8> {
+impl<'a> From<alloc::borrow::Cow<'a, str>> for String<Utf8> {
     /// Creates a `String<Utf8>` from a `Cow<str>`.
     #[inline]
-    fn from(s: std::borrow::Cow<'a, str>) -> Self {
+    fn from(s: alloc::borrow::Cow<'a, str>) -> Self {
         // SAFETY: Cow<str> is always valid UTF-8
         unsafe { String::from_bytes_unchecked(s.into_owned().into_bytes()) }
     }
 }
 
-impl From<String<Utf8>> for std::borrow::Cow<'static, str> {
+impl From<String<Utf8>> for alloc::borrow::Cow<'static, str> {
     /// Converts a `String<Utf8>` to a `Cow<'static, str>`.
     #[inline]
-    fn from(s: String<Utf8>) -> std::borrow::Cow<'static, str> {
-        std::borrow::Cow::Owned(std::string::String::from(s))
+    fn from(s: String<Utf8>) -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Owned(alloc::string::String::from(s))
     }
 }
 
@@ -275,7 +277,7 @@ inventory::submit! {
         is_unicode: true,
         decode: |bytes| {
             Utf8::validate(bytes)?;
-            let s = unsafe { std::str::from_utf8_unchecked(bytes) };
+            let s = unsafe { core::str::from_utf8_unchecked(bytes) };
             Ok(s.chars().collect())
         },
         try_encode_char: |c| {
@@ -511,6 +513,7 @@ impl<'a, 'b, 'c> Pattern<'a, Utf8> for &'c &'b str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::vec::Vec;
 
     #[test]
     fn test_validate() {

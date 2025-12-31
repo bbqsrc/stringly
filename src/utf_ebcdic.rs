@@ -23,6 +23,8 @@
 //! UTF-EBCDIC is primarily used on IBM mainframe systems (z/OS, OS/400) where native
 //! character encoding is EBCDIC rather than ASCII.
 
+use alloc::vec::Vec;
+
 use crate::encoding::{Encoding, UniversalEncoding};
 use crate::error::EncodingError;
 
@@ -490,7 +492,7 @@ mod tests {
 
         assert!(UtfEbcdic::validate(&encoded).is_ok());
 
-        let mut decoded = std::string::String::new();
+        let mut decoded = alloc::string::String::new();
         let mut offset = 0;
         while let Some((c, next)) = UtfEbcdic::decode_char_at(&encoded, offset) {
             decoded.push(c);

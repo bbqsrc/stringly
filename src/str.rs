@@ -1,3 +1,4 @@
+use alloc::borrow::ToOwned;
 use core::cmp::Ordering;
 use core::fmt;
 use core::hash::{Hash, Hasher};
@@ -20,7 +21,7 @@ use crate::pattern::{DoubleEndedSearcher, Pattern, ReverseSearcher, SearchStep, 
 /// A borrowed string slice in encoding `E`.
 ///
 /// This is the borrowed counterpart to [`String<E>`], analogous to how
-/// `str` relates to `std::string::String`.
+/// `str` relates to `alloc::string::String`.
 #[repr(transparent)]
 pub struct Str<E: Encoding> {
     _marker: PhantomData<E>,
@@ -631,7 +632,7 @@ impl<E: Encoding> Str<E> {
     pub fn parse<F: FromStr>(&self) -> Result<F, F::Err> {
         // For parsing, we need to convert to a UTF-8 str first
         // This works for all encodings as we iterate chars
-        let s: std::string::String = self.chars().collect();
+        let s: alloc::string::String = self.chars().collect();
         s.parse()
     }
 

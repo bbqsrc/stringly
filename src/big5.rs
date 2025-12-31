@@ -13,6 +13,8 @@
 //! The WHATWG variant (used here) includes extensions for Hong Kong
 //! Supplementary Character Set (HKSCS).
 
+use alloc::vec::Vec;
+
 use crate::encoding::Encoding;
 use crate::error::EncodingError;
 

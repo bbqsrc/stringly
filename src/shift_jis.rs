@@ -13,6 +13,8 @@
 //!
 //! This implementation follows the WHATWG encoding standard.
 
+use alloc::vec::Vec;
+
 use crate::encoding::Encoding;
 use crate::error::EncodingError;
 

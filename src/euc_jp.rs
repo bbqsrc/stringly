@@ -13,6 +13,8 @@
 //! - 2 bytes: JIS X 0208 (0xA1-0xFE + 0xA1-0xFE)
 //! - 3 bytes: JIS X 0212 (0x8F + 0xA1-0xFE + 0xA1-0xFE)
 
+use alloc::vec::Vec;
+
 use crate::encoding::Encoding;
 use crate::error::EncodingError;
 

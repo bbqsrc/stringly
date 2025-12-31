@@ -10,6 +10,8 @@
 //! - 2 bytes: GBK characters (lead: 0x81-0xFE, trail: 0x40-0x7E or 0x80-0xFE)
 //! - 4 bytes: All other Unicode (B1: 0x81-0xFE, B2: 0x30-0x39, B3: 0x81-0xFE, B4: 0x30-0x39)
 
+use alloc::vec::Vec;
+
 use crate::encoding::Encoding;
 use crate::error::EncodingError;
 

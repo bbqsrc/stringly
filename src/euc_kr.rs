@@ -13,6 +13,8 @@
 //! The WHATWG variant (used here) is compatible with Windows code page 949,
 //! which extends EUC-KR with additional Hangul syllables.
 
+use alloc::vec::Vec;
+
 use crate::encoding::Encoding;
 use crate::error::EncodingError;
 

@@ -20,8 +20,11 @@
 //! let utf16: String<Utf16Le> = utf8.chars().collect();
 //! ```
 
+#![no_std]
 #![deny(missing_docs)]
 #![allow(clippy::new_without_default)]
+
+extern crate alloc;
 
 /// The `CStr<E>` borrowed null-terminated string type.
 pub mod cstr;

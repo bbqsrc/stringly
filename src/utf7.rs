@@ -25,6 +25,8 @@
 //! - Uses `,` instead of `/` in the Base64 alphabet
 //! - Used for IMAP mailbox names
 
+use alloc::vec::Vec;
+
 use crate::encoding::{Encoding, UniversalEncoding};
 use crate::error::EncodingError;
 

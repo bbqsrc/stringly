@@ -1,16 +1,19 @@
 //! Null-terminated owned string type.
 //!
 //! This module provides [`CString<E>`], an owned null-terminated string in any
-//! encoding. It is analogous to [`std::ffi::CString`] but supports arbitrary
+//! encoding. It is analogous to [`alloc::ffi::CString`] but supports arbitrary
 //! character encodings.
 
-use std::borrow::{Borrow, Cow};
-use std::cmp::Ordering;
-use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::marker::PhantomData;
-use std::mem::ManuallyDrop;
-use std::ops::Deref;
+use alloc::borrow::Cow;
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+use core::borrow::Borrow;
+use core::cmp::Ordering;
+use core::fmt;
+use core::hash::{Hash, Hasher};
+use core::marker::PhantomData;
+use core::mem::ManuallyDrop;
+use core::ops::Deref;
 
 use crate::Str;
 use crate::String;
@@ -22,7 +25,7 @@ use crate::iter::Chars;
 /// An owned null-terminated string in encoding `E`.
 ///
 /// This type represents an owned, null-terminated string that is valid in the
-/// specified encoding. It is the encoding-generic equivalent of [`std::ffi::CString`].
+/// specified encoding. It is the encoding-generic equivalent of [`alloc::ffi::CString`].
 ///
 /// `CString<E>` dereferences to [`CStr<E>`], providing access to all borrowed
 /// string operations.
@@ -36,7 +39,7 @@ use crate::iter::Chars;
 ///
 /// # Interior Nulls
 ///
-/// Like [`std::ffi::CString`], this type does not permit interior null characters.
+/// Like [`alloc::ffi::CString`], this type does not permit interior null characters.
 /// Use [`CString::from_str`] which will check for interior nulls, or
 /// [`CString::from_bytes_with_nul`] for bytes that already include the terminator.
 ///
@@ -182,7 +185,7 @@ impl<E: Encoding> CString<E> {
     /// Creates a `CString` from a byte vector containing a null terminator.
     ///
     /// This is an alias for [`from_bytes_with_nul`] for compatibility with
-    /// [`std::ffi::CString::from_vec_with_nul`].
+    /// [`alloc::ffi::CString::from_vec_with_nul`].
     ///
     /// [`from_bytes_with_nul`]: Self::from_bytes_with_nul
     #[inline]
@@ -193,7 +196,7 @@ impl<E: Encoding> CString<E> {
     /// Creates a `CString` from a byte vector without checking validity.
     ///
     /// This is an alias for [`from_bytes_with_nul_unchecked`] for compatibility
-    /// with [`std::ffi::CString::from_vec_with_nul_unchecked`].
+    /// with [`alloc::ffi::CString::from_vec_with_nul_unchecked`].
     ///
     /// # Safety
     ///
@@ -316,7 +319,7 @@ impl<E: Encoding> CString<E> {
         unsafe { String::from_bytes_unchecked(self.bytes) }
     }
 
-    /// Converts this `CString` to a `std::ffi::CString`.
+    /// Converts this `CString` to a `alloc::ffi::CString`.
     ///
     /// For encodings with a 1-byte null terminator (like UTF-8), this is a
     /// zero-copy conversion. For encodings with multi-byte null terminators
@@ -331,15 +334,15 @@ impl<E: Encoding> CString<E> {
     /// let std_cstring: std::ffi::CString = cstring.to_std();
     /// assert_eq!(std_cstring.as_bytes(), b"hello");
     /// ```
-    pub fn to_std(self) -> std::ffi::CString {
+    pub fn to_std(self) -> alloc::ffi::CString {
         if E::NULL_LEN == 1 {
             // 1-byte null terminator - zero-copy conversion
             // SAFETY: We have a valid null-terminated string with 1-byte null
-            unsafe { std::ffi::CString::from_vec_with_nul_unchecked(self.bytes) }
+            unsafe { alloc::ffi::CString::from_vec_with_nul_unchecked(self.bytes) }
         } else {
             // Multi-byte null terminator - transcode to UTF-8
-            let utf8: std::string::String = self.chars().collect();
-            std::ffi::CString::new(utf8).expect("transcoded string contains no interior nulls")
+            let utf8: alloc::string::String = self.chars().collect();
+            alloc::ffi::CString::new(utf8).expect("transcoded string contains no interior nulls")
         }
     }
 
@@ -568,7 +571,7 @@ impl<E: Encoding> From<CString<E>> for Cow<'_, CStr<E>> {
 }
 
 // ToOwned implementation for CStr
-impl<E: Encoding> std::borrow::ToOwned for CStr<E> {
+impl<E: Encoding> alloc::borrow::ToOwned for CStr<E> {
     type Owned = CString<E>;
 
     #[inline]

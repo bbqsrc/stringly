@@ -24,5 +24,8 @@
 //! assert!(!Cp1252::can_encode('中')); // Chinese character is not
 //! ```
 
+use alloc::vec;
+use alloc::vec::Vec;
+
 // Include the generated codepage implementations
 include!(concat!(env!("OUT_DIR"), "/codepages.rs"));

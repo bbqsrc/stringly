@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use core::fmt;
 
 /// An error indicating that a byte slice is not valid for a given encoding.
@@ -56,7 +57,7 @@ impl fmt::Display for EncodingError {
     }
 }
 
-impl std::error::Error for EncodingError {}
+impl core::error::Error for EncodingError {}
 
 /// An error returned when conversion from a `Vec<u8>` to `String<E>` fails.
 ///
@@ -112,8 +113,8 @@ impl<E> fmt::Display for FromBytesError<E> {
     }
 }
 
-impl<E: fmt::Debug> std::error::Error for FromBytesError<E> {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl<E: fmt::Debug> core::error::Error for FromBytesError<E> {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         Some(&self.error)
     }
 }
@@ -178,7 +179,7 @@ impl fmt::Display for TranscodeError {
     }
 }
 
-impl std::error::Error for TranscodeError {}
+impl core::error::Error for TranscodeError {}
 
 /// An error returned when converting bytes with a null terminator to a C string fails.
 ///
@@ -235,8 +236,8 @@ impl fmt::Display for FromBytesWithNulError {
     }
 }
 
-impl std::error::Error for FromBytesWithNulError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl core::error::Error for FromBytesWithNulError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
             Self::InvalidEncoding { error } => Some(error),
             _ => None,
@@ -293,8 +294,8 @@ impl fmt::Display for FromBytesWithNulVecError {
     }
 }
 
-impl std::error::Error for FromBytesWithNulVecError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl core::error::Error for FromBytesWithNulVecError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         Some(&self.kind)
     }
 }
@@ -357,8 +358,8 @@ impl fmt::Display for FromBytesUntilNulError {
     }
 }
 
-impl std::error::Error for FromBytesUntilNulError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl core::error::Error for FromBytesUntilNulError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
             Self::InvalidEncoding { error } => Some(error),
             _ => None,

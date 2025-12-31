@@ -4,6 +4,7 @@
 //! string in any encoding. It is analogous to [`std::ffi::CStr`] but supports
 //! arbitrary character encodings.
 
+use alloc::boxed::Box;
 use core::cmp::Ordering;
 use core::fmt;
 use core::hash::{Hash, Hasher};
@@ -387,19 +388,19 @@ impl<E: Encoding> CStr<E> {
     /// let std_cstr: Cow<'_, std::ffi::CStr> = cstr.to_std();
     /// assert!(matches!(std_cstr, Cow::Borrowed(_)));
     /// ```
-    pub fn to_std(&self) -> std::borrow::Cow<'_, std::ffi::CStr> {
+    pub fn to_std(&self) -> alloc::borrow::Cow<'_, core::ffi::CStr> {
         if E::NULL_LEN == 1 {
-            // 1-byte null terminator - compatible with std::ffi::CStr
+            // 1-byte null terminator - compatible with core::ffi::CStr
             // SAFETY: We have a valid null-terminated string with 1-byte null
             let cstr =
-                unsafe { std::ffi::CStr::from_bytes_with_nul_unchecked(self.as_bytes_with_nul()) };
-            std::borrow::Cow::Borrowed(cstr)
+                unsafe { core::ffi::CStr::from_bytes_with_nul_unchecked(self.as_bytes_with_nul()) };
+            alloc::borrow::Cow::Borrowed(cstr)
         } else {
             // Multi-byte null terminator - need to transcode to UTF-8
-            let utf8: String = self.chars().collect();
-            let cstring =
-                std::ffi::CString::new(utf8).expect("transcoded string contains no interior nulls");
-            std::borrow::Cow::Owned(cstring)
+            let utf8: alloc::string::String = self.chars().collect();
+            let cstring = alloc::ffi::CString::new(utf8)
+                .expect("transcoded string contains no interior nulls");
+            alloc::borrow::Cow::Owned(cstring)
         }
     }
 }

@@ -17,6 +17,8 @@
 //! scanning from the beginning of the string to track escape sequences. This makes
 //! random access O(n) instead of O(1).
 
+use alloc::vec::Vec;
+
 use crate::encoding::Encoding;
 use crate::error::EncodingError;
 

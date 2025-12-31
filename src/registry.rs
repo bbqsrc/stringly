@@ -17,19 +17,22 @@
 //! let output = registry::transcode(input_bytes, "UTF-8", "ISO-8859-1")?;
 //! ```
 
+use alloc::string::ToString;
+use alloc::vec::Vec;
+
 use crate::error::EncodingError;
 
 /// Error returned when an encoding is not found.
 #[derive(Debug, Clone)]
-pub struct UnknownEncodingError(pub std::string::String);
+pub struct UnknownEncodingError(pub alloc::string::String);
 
-impl std::fmt::Display for UnknownEncodingError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for UnknownEncodingError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "unknown encoding: {}", self.0)
     }
 }
 
-impl std::error::Error for UnknownEncodingError {}
+impl core::error::Error for UnknownEncodingError {}
 
 /// Error returned during transcoding.
 #[derive(Debug)]
@@ -44,8 +47,8 @@ pub enum TranscodeError {
     UnencodableChar(char),
 }
 
-impl std::fmt::Display for TranscodeError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for TranscodeError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::UnknownSourceEncoding(e) => write!(f, "source {}", e),
             Self::UnknownTargetEncoding(e) => write!(f, "target {}", e),
@@ -55,7 +58,7 @@ impl std::fmt::Display for TranscodeError {
     }
 }
 
-impl std::error::Error for TranscodeError {}
+impl core::error::Error for TranscodeError {}
 
 /// A registered encoding entry.
 ///
@@ -86,7 +89,7 @@ impl EncodingEntry {
 
     /// Returns all names (canonical + aliases) for this encoding.
     pub fn all_names(&self) -> impl Iterator<Item = &'static str> {
-        std::iter::once(self.name).chain(self.aliases.iter().copied())
+        core::iter::once(self.name).chain(self.aliases.iter().copied())
     }
 
     /// Check if this encoding matches the given name (case-insensitive).

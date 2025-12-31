@@ -1,3 +1,5 @@
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use core::borrow::{Borrow, BorrowMut};
 use core::cmp::Ordering;
 use core::fmt;
@@ -18,7 +20,7 @@ use crate::pattern::{Pattern, Searcher};
 /// An owned string in encoding `E`.
 ///
 /// This is the owned counterpart to [`Str<E>`], analogous to how
-/// `std::string::String` relates to `str`.
+/// `alloc::string::String` relates to `str`.
 pub struct String<E: Encoding> {
     bytes: Vec<u8>,
     _marker: PhantomData<E>,
@@ -49,7 +51,7 @@ impl<E: Encoding> String<E> {
     ///
     /// Returns an error if the capacity cannot be allocated.
     #[inline]
-    pub fn try_with_capacity(capacity: usize) -> Result<Self, std::collections::TryReserveError> {
+    pub fn try_with_capacity(capacity: usize) -> Result<Self, alloc::collections::TryReserveError> {
         let mut bytes = Vec::new();
         bytes.try_reserve(capacity)?;
         Ok(Self {
@@ -226,7 +228,7 @@ impl<E: Encoding> String<E> {
     pub fn try_reserve(
         &mut self,
         additional: usize,
-    ) -> Result<(), std::collections::TryReserveError> {
+    ) -> Result<(), alloc::collections::TryReserveError> {
         self.bytes.try_reserve(additional)
     }
 
@@ -235,7 +237,7 @@ impl<E: Encoding> String<E> {
     pub fn try_reserve_exact(
         &mut self,
         additional: usize,
-    ) -> Result<(), std::collections::TryReserveError> {
+    ) -> Result<(), alloc::collections::TryReserveError> {
         self.bytes.try_reserve_exact(additional)
     }
 
@@ -578,14 +580,14 @@ impl<E: Encoding> String<E> {
         &mut self.bytes
     }
 
-    /// Converts this string to a `std::string::String` (UTF-8).
+    /// Converts this string to a `alloc::string::String` (UTF-8).
     ///
-    /// For `String<Utf8>`, consider using `Into<std::string::String>` instead
+    /// For `String<Utf8>`, consider using `Into<alloc::string::String>` instead
     /// for a zero-copy conversion.
     ///
     /// For other encodings, this transcodes to UTF-8 by iterating over characters.
     #[inline]
-    pub fn to_std(&self) -> std::string::String {
+    pub fn to_std(&self) -> alloc::string::String {
         self.chars().collect()
     }
 

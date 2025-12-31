@@ -18,6 +18,8 @@
 //! CESU-8 is found in Oracle databases and some Java serialization contexts where
 //! the "Modified UTF-8" format is used.
 
+use alloc::vec::Vec;
+
 use crate::encoding::{Encoding, UniversalEncoding};
 use crate::error::EncodingError;
 
