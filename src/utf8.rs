@@ -179,6 +179,36 @@ impl crate::CStr<Utf8> {
     }
 }
 
+// === std::ffi::CStr/CString conversions ===
+
+impl<'a> TryFrom<&'a std::ffi::CStr> for &'a crate::CStr<Utf8> {
+    type Error = std::str::Utf8Error;
+
+    /// Converts a `&std::ffi::CStr` to a `&CStr<Utf8>`.
+    ///
+    /// This validates that the C string contains valid UTF-8.
+    fn try_from(s: &'a std::ffi::CStr) -> Result<Self, Self::Error> {
+        // Validate UTF-8
+        std::str::from_utf8(s.to_bytes())?;
+        // SAFETY: We just validated UTF-8, and it has null terminator
+        Ok(unsafe { crate::CStr::<Utf8>::from_bytes_with_nul_unchecked(s.to_bytes_with_nul()) })
+    }
+}
+
+impl TryFrom<std::ffi::CString> for crate::CString<Utf8> {
+    type Error = std::ffi::IntoStringError;
+
+    /// Converts a `std::ffi::CString` to a `CString<Utf8>`.
+    ///
+    /// This validates that the C string contains valid UTF-8.
+    fn try_from(s: std::ffi::CString) -> Result<Self, Self::Error> {
+        // Validate UTF-8 by converting to String
+        let string = s.into_string()?;
+        // SAFETY: String is valid UTF-8, from_str handles null terminator
+        Ok(crate::CString::from_str(&String::<Utf8>::from(string)))
+    }
+}
+
 // === AsRef<str> implementations ===
 
 impl AsRef<str> for Str<Utf8> {
